@@ -8,7 +8,10 @@ from ..config import (
     PROXY_RISK_KEYWORDS, CONTEXT_RULES
 )
 
-client = genai.Client(api_key=API_KEY)
+def _get_client():
+    if not API_KEY:
+        raise ValueError("GEMINI_API_KEY is not set.")
+    return genai.Client(api_key=API_KEY)
 
 def profile_columns(df: pd.DataFrame) -> dict:
     profiles = {}
@@ -106,6 +109,7 @@ Return ONLY JSON:
   }}
 }}
 """
+    client = _get_client()
     response = client.models.generate_content(
         model="gemini-2.5-flash-lite",
         contents=prompt,
@@ -147,6 +151,7 @@ Return ONLY JSON:
   ]
 }}
 """
+    client = _get_client()
     response = client.models.generate_content(
         model="gemini-2.5-flash-lite",
         contents=prompt,
