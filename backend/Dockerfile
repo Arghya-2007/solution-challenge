@@ -1,16 +1,26 @@
-# Use an official lightweight Python image
 FROM python:3.11-slim
 
-# Set the working directory to /app
+ENV PYTHONDONTWRITEBYTECODE=1 \
+	PYTHONUNBUFFERED=1 \
+	PIP_DISABLE_PIP_VERSION_CHECK=1 \
+	PIP_NO_CACHE_DIR=1
+
 WORKDIR /app
 
-# Copy requirements and install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Create an unprivileged user for runtime security.
+RUN addgroup --system app && adduser --system --ingroup app app
 
-# Copy the rest of the backend code
+COPY requirements.txt ./
+RUN pip install --upgrade pip && pip install -r requirements.txt
+
 COPY . .
+RUN chown -R app:app /app
 
-# Run the FastAPI application using Uvicorn
-# Replace 'main:app' if your file or app variable is named differently
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+USER app
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+	CMD python -c "import urllib.request; import os; port = os.getenv('PORT', '8080'); urllib.request.urlopen(f'http://127.0.0.1:{port}/health').read()" || exit 1
+
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080} --proxy-headers --forwarded-allow-ips=*"]

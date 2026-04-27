@@ -1,0 +1,51 @@
+FROM python:3.11-slim AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+# Build dependencies in builder stage to keep runtime image smaller.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY requirements.txt ./
+RUN pip install --upgrade pip \
+    && pip install -r requirements.txt
+
+
+FROM python:3.11-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PATH="/opt/venv/bin:$PATH"
+
+WORKDIR /app
+
+# Create an unprivileged user for runtime security.
+RUN addgroup --system app && adduser --system --ingroup app app
+
+# Copy only the installed virtualenv from builder.
+COPY --from=builder /opt/venv /opt/venv
+
+# Copy application source after dependencies for faster rebuilds on code changes.
+COPY . .
+RUN chown -R app:app /app /opt/venv
+
+USER app
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health').read()" || exit 1
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--proxy-headers", "--forwarded-allow-ips=*"]
+

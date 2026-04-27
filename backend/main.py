@@ -27,7 +27,7 @@ def _env_list(name: str, default: str) -> list[str]:
 # Configuration
 MAX_REQUEST_SIZE_BYTES = int(os.getenv("MAX_REQUEST_SIZE_BYTES", str(10 * 1024 * 1024)))
 API_KEY = os.getenv("API_KEY")
-ALLOWED_HOSTS = _env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
+ALLOWED_HOSTS = _env_list("ALLOWED_HOSTS", "*")
 ALLOWED_ORIGINS = _env_list("ALLOWED_ORIGINS", "*")
 ENFORCE_HTTPS = os.getenv("ENFORCE_HTTPS", "false").lower() == "true"
 
@@ -77,4 +77,5 @@ app.include_router(base_routes.router)
 app.include_router(audit_routes.router)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
