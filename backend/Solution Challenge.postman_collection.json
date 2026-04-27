@@ -1,0 +1,171 @@
+{
+  "info": {
+    "_postman_id": "544c207b-9606-4ee9-a4c6-8626749eb2ec",
+    "name": "Solution Challenge",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "45328119",
+    "_collection_link": "https://go.postman.co/collection/45328119-544c207b-9606-4ee9-a4c6-8626749eb2ec?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": []
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/health",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Upload Dataset (File)",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "uuid": "3e9a0898-105c-4c2d-b8b6-7ad6b2a5fc79",
+              "src": "/home/imagiwaeve/Music/solution-challenge/datasets/dataset3.csv"
+            }
+          ]
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/upload",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "upload"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Upload Dataset (Sheet)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "sheet_url",
+              "value": "",
+              "type": "text",
+              "uuid": "d1e00884-a162-408e-a255-84bb40c6faa9"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Analyze Dataset",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": []
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/analyze",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "analyze"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Export Report",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": []
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/export",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "export"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

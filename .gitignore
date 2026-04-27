@@ -1,0 +1,8 @@
+.env
+credentials.json
+
+node_modules
+__pycache__
+
+ROUTES.md
+GSPREAD_SETUP.md
