@@ -1,23 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-    Box, Typography, Alert, TextField, Autocomplete, MenuItem, Button,
-    Skeleton, Accordion, AccordionSummary, AccordionDetails, Snackbar,
-    Paper, GlobalStyles, Chip, Divider, Grid, Card, CardContent
+    Box, Typography, Alert, TextField, MenuItem, Button,
+    Skeleton, Snackbar, Paper, GlobalStyles
 } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import LanguageIcon from '@mui/icons-material/Language';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     analyzeDataset, 
     getSummary, 
     getRecommendations, 
-    applyFix, 
-    exportReport, 
-    downloadFixedDataset 
+    exportReport
 } from '../api/equilens';
 import MetricCard from '../components/MetricCard';
 import BiasChart from '../components/BiasChart';
@@ -43,20 +39,17 @@ const itemVariants = {
 
 export default function Analyze() {
     const location = useLocation();
+    const navigate = useNavigate();
     const state = location.state || {};
-
-    const columns = state.data?.columns || state.columns || [];
 
     const [protectedAttrs, setProtectedAttrs] = useState([]);
     const [targetColumn, setTargetColumn] = useState('');
     const [language, setLanguage] = useState('en');
     const [loading, setLoading] = useState(false);
-    const [fixLoading, setFixLoading] = useState(false);
 
     const [results, setResults] = useState(null);
     const [summary, setSummary] = useState(null);
     const [recommendations, setRecommendations] = useState(null);
-    const [fixResult, setFixResult] = useState(null);
 
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [snackbarMsg, setSnackbarMsg] = useState('');
@@ -66,7 +59,6 @@ export default function Analyze() {
         setResults(null);
         setSummary(null);
         setRecommendations(null);
-        setFixResult(null);
 
         try {
             const analysisRes = await analyzeDataset();
@@ -96,21 +88,6 @@ export default function Analyze() {
         }
     };
 
-    const handleApplyFix = async (modelName) => {
-        setFixLoading(true);
-        try {
-            const res = await applyFix(modelName);
-            setFixResult(res);
-            setSnackbarMsg(`Bias mitigation applied using ${modelName}!`);
-            setSnackbarOpen(true);
-        } catch (e) {
-            setSnackbarMsg("Failed to apply bias fix.");
-            setSnackbarOpen(true);
-        } finally {
-            setFixLoading(false);
-        }
-    };
-
     const handleDownloadPDF = async () => {
         try {
             const blob = await exportReport();
@@ -121,24 +98,9 @@ export default function Analyze() {
             document.body.appendChild(link);
             link.click();
             link.parentNode.removeChild(link);
-        } catch(e) {
+        } catch(error) {
+            console.error(error);
             setSnackbarMsg("PDF Generation failed.");
-            setSnackbarOpen(true);
-        }
-    };
-
-    const handleDownloadFixedCSV = async () => {
-        try {
-            const blob = await downloadFixedDataset();
-            const url = window.URL.createObjectURL(new Blob([blob]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `fixed_dataset.csv`);
-            document.body.appendChild(link);
-            link.click();
-            link.parentNode.removeChild(link);
-        } catch(e) {
-            setSnackbarMsg("CSV Download failed.");
             setSnackbarOpen(true);
         }
     };
@@ -332,109 +294,27 @@ export default function Analyze() {
 
                                 {recommendations && (
                                     <motion.div variants={itemVariants}>
-                                        <Typography variant="h4" fontWeight="900" sx={{ mb: 3, color: THEME.dark }}>
-                                            Mitigation Strategies
-                                        </Typography>
-                                        <Grid container spacing={3} sx={{ mb: 6 }}>
-                                            {recommendations.recommendations?.map((rec, idx) => (
-                                                <Grid item xs={12} md={6} key={idx}>
-                                                    <Card sx={{ borderRadius: '20px', height: '100%', background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(10px)' }}>
-                                                        <CardContent>
-                                                            <Chip label={rec.category} size="small" sx={{ mb: 1, bgcolor: THEME.blue, color: '#fff', fontWeight: 700 }} />
-                                                            <Typography variant="h6" fontWeight="800">{rec.method}</Typography>
-                                                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>{rec.description}</Typography>
-                                                            <Divider sx={{ my: 1 }} />
-                                                            <Box display="flex" justifyContent="space-between" mt={1}>
-                                                                <Typography variant="caption" fontWeight="700">Bias Impact: <span style={{color: THEME.green}}>{rec.impact_on_bias}</span></Typography>
-                                                                <Typography variant="caption" fontWeight="700">Accuracy Impact: <span style={{color: THEME.yellow}}>{rec.impact_on_accuracy}</span></Typography>
-                                                            </Box>
-                                                        </CardContent>
-                                                    </Card>
-                                                </Grid>
-                                            ))}
-                                        </Grid>
+                                        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
+                                            <Button
+                                                variant="contained"
+                                                endIcon={<ArrowForwardIcon />}
+                                                onClick={() => navigate('/recommendation', { state: { recommendations } })}
+                                                sx={{
+                                                    bgcolor: THEME.blue,
+                                                    borderRadius: '12px',
+                                                    px: 4,
+                                                    py: 1.5,
+                                                    fontSize: '1.1rem',
+                                                    fontWeight: 800,
+                                                    textTransform: 'none',
+                                                    boxShadow: `0 10px 20px ${THEME.blue}40`
+                                                }}
+                                            >
+                                                View Mitigation Strategies & Fixes
+                                            </Button>
+                                        </Box>
                                     </motion.div>
                                 )}
-
-                                <motion.div variants={itemVariants}>
-                                    <Paper sx={{ p: 4, mb: 4, borderRadius: '24px', background: `linear-gradient(135deg, ${THEME.dark}, #3c4043)`, color: '#fff' }}>
-                                        <Typography variant="h4" fontWeight="900" gutterBottom>
-                                            EquiFix Pipeline
-                                        </Typography>
-                                        <Typography variant="body1" sx={{ opacity: 0.8, mb: 4 }}>
-                                            Apply automated bias mitigation. Our engine will retrain a fair model using Exponentiated Gradient Reduction.
-                                        </Typography>
-                                        
-                                        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                                            {['LogisticRegression', 'RandomForestClassifier', 'DecisionTreeClassifier'].map(model => (
-                                                <Button 
-                                                    key={model}
-                                                    disabled={fixLoading}
-                                                    onClick={() => handleApplyFix(model)}
-                                                    variant="contained" 
-                                                    sx={{ 
-                                                        bgcolor: THEME.blue, 
-                                                        borderRadius: '10px', 
-                                                        px: 3, 
-                                                        textTransform: 'none', 
-                                                        fontWeight: 700 
-                                                    }}
-                                                >
-                                                    Fix with {model.replace('Classifier', '')}
-                                                </Button>
-                                            ))}
-                                        </Box>
-
-                                        <AnimatePresence>
-                                            {fixResult && (
-                                                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} style={{ marginTop: '24px' }}>
-                                                    <Box sx={{ p: 3, borderRadius: '15px', bgcolor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                                        <Typography variant="h6" fontWeight="800" color={THEME.green} mb={2}>Mitigation Results</Typography>
-                                                        
-                                                        <Box sx={{ width: '100%', overflowX: 'auto' }}>
-                                                            <table style={{ width: '100%', borderCollapse: 'collapse', color: '#fff' }}>
-                                                                <thead>
-                                                                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
-                                                                        <th style={{ textAlign: 'left', padding: '12px', opacity: 0.7 }}>Metric</th>
-                                                                        <th style={{ textAlign: 'center', padding: '12px', opacity: 0.7 }}>Before</th>
-                                                                        <th style={{ textAlign: 'center', padding: '12px', opacity: 0.7 }}>After</th>
-                                                                        <th style={{ textAlign: 'right', padding: '12px', opacity: 0.7 }}>Improvement</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                                                                        <td style={{ padding: '12px', fontWeight: 700 }}>Bias (DPD)</td>
-                                                                        <td style={{ textAlign: 'center', padding: '12px' }}>{fixResult.before?.demographic_parity_difference.toFixed(4)}</td>
-                                                                        <td style={{ textAlign: 'center', padding: '12px', color: THEME.green, fontWeight: 800 }}>{fixResult.after?.demographic_parity_difference.toFixed(4)}</td>
-                                                                        <td style={{ textAlign: 'right', padding: '12px', color: THEME.green }}>{(fixResult.improvement?.bias_reduction * 100).toFixed(1)}%</td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <td style={{ padding: '12px', fontWeight: 700 }}>Accuracy</td>
-                                                                        <td style={{ textAlign: 'center', padding: '12px' }}>{(fixResult.before?.accuracy * 100).toFixed(1)}%</td>
-                                                                        <td style={{ textAlign: 'center', padding: '12px' }}>{(fixResult.after?.accuracy * 100).toFixed(1)}%</td>
-                                                                        <td style={{ textAlign: 'right', padding: '12px', color: fixResult.improvement?.accuracy_change >= 0 ? THEME.green : THEME.red }}>
-                                                                            {(fixResult.improvement?.accuracy_change * 100).toFixed(1)}%
-                                                                        </td>
-                                                                    </tr>
-                                                                </tbody>
-                                                            </table>
-                                                        </Box>
-
-                                                        <Button 
-                                                            fullWidth 
-                                                            startIcon={<CloudDownloadIcon />} 
-                                                            onClick={handleDownloadFixedCSV}
-                                                            variant="contained" 
-                                                            sx={{ mt: 3, bgcolor: THEME.green, fontWeight: 800, borderRadius: '10px', '&:hover': { bgcolor: '#2d8b46' } }}
-                                                        >
-                                                            Download Mitigated Dataset
-                                                        </Button>
-                                                    </Box>
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </Paper>
-                                </motion.div>
 
                             </motion.div>
                         )}

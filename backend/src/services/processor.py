@@ -118,7 +118,15 @@ Return ONLY JSON:
             temperature=0.0
         )
     )
-    return json.loads(response.text)
+
+    text = response.text
+    # Robust JSON extraction
+    start_idx = text.find('{')
+    end_idx = text.rfind('}')
+    if start_idx != -1 and end_idx != -1:
+        text = text[start_idx:end_idx+1]
+
+    return json.loads(text)
 
 def get_recommendations(audit_results: dict, fairness_metrics: dict) -> dict:
     prompt = f"""
@@ -160,4 +168,12 @@ Return ONLY JSON:
             temperature=0.2
         )
     )
-    return json.loads(response.text)
+
+    text = response.text
+    # Robust JSON extraction
+    start_idx = text.find('{')
+    end_idx = text.rfind('}')
+    if start_idx != -1 and end_idx != -1:
+        text = text[start_idx:end_idx+1]
+
+    return json.loads(text)
