@@ -8,6 +8,7 @@
 **EquiLens** is an end-to-end AI fairness auditing and mitigation platform designed to identify, analyze, and rectify algorithmic bias in machine learning datasets and models. By combining traditional statistical fairness metrics with state-of-the-art Large Language Models (LLMs), EquiLens provides both numerical precision and contextual understanding to the complex problem of AI bias.
 
 [Live Link](https://equilens-e21e9.web.app)
+</br>
 [Video](https://github.com/Arghya-2007/solution-challenge/raw/refs/heads/main/video.mp4)
 
 ---
