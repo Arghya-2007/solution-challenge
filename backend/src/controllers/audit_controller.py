@@ -28,9 +28,9 @@ async def analyze_dataset():
         return await audit_service.analyze_dataset()
     except FileNotFoundError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception:
+    except Exception as e:
         logger.exception("Failed to analyze dataset")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail=str(e))
 
 async def get_summary(payload: dict):
     metrics = payload.get("metrics")
