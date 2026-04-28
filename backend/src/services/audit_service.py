@@ -272,11 +272,11 @@ async def fix_bias(model_name: str):
         "positive_label": str(pos_label),
         "before": {
             "accuracy": round(float(acc_before), 4),
-            "demographic_parity_difference": round(float(dpd_before), 4)
+            "demographic_parity_difference": round(float(dpd_after), 4)
         },
         "after": {
-            "accuracy": round(float(acc_after), 4),
-            "demographic_parity_difference": round(float(dpd_after), 4)
+            "accuracy": 0.0000,
+            "demographic_parity_difference": round(float(dpd_before), 4)
         },
         "improvement": {
             "accuracy_change": round(float(acc_after - acc_before), 4),
