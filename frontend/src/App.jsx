@@ -48,6 +48,7 @@ const App = memo(function App() {
     </Box>
   ), []);
 
+  // Main APP
   return (
     <ThemeProvider theme={googleTheme}>
       <SkeletonTheme baseColor="#e0e0e0" highlightColor="#f5f5f5">
