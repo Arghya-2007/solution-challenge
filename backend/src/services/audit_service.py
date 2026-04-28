@@ -181,41 +181,46 @@ async def fix_bias(model_name: str):
     target = detect_target(df)
     logger.info(f"Detected target column: {target}")
     
-    # Identify sensitive columns
-    sensitive_cols = []
+    # Identify Protected vs Proxy columns
+    protected_cols = []
+    proxy_cols = []
+    
     for col in df.columns:
         if col == target:
             continue
         profile = {"top_values": list(df[col].dropna().head(10).astype(str))}
-        if rule_check(col, profile)["flag"]:
-            sensitive_cols.append(col)
+        check = rule_check(col, profile)
+        if check["flag"]:
+            if check["type"] == "direct_sensitive":
+                protected_cols.append(col)
+            elif check["type"] == "proxy_risk":
+                proxy_cols.append(col)
     
-    if not sensitive_cols:
-        logger.warning("No sensitive columns detected by rules.")
-        # Fallback: check last audit results
-        if os.path.exists(LAST_AUDIT_PATH):
-            with open(LAST_AUDIT_PATH, "r") as f:
-                audit_data = json.load(f)
-                flagged = audit_data.get("bias_audit", {}).get("flagged_features", {})
-                sensitive_cols = list(flagged.keys())
-                logger.info(f"Loaded {len(sensitive_cols)} sensitive columns from last audit.")
+    # Fallback for protected columns only if none found
+    if not protected_cols and os.path.exists(LAST_AUDIT_PATH):
+        with open(LAST_AUDIT_PATH, "r") as f:
+            audit_data = json.load(f)
+            flagged = audit_data.get("bias_audit", {}).get("flagged_features", {})
+            protected_cols = list(flagged.keys())
+            logger.info(f"Loaded {len(protected_cols)} protected columns from last audit.")
     
-    if not sensitive_cols:
-        raise ValueError("No sensitive columns detected to fix bias. Audit the dataset first.")
+    if not protected_cols and not proxy_cols:
+        raise ValueError("No sensitive or proxy columns detected to fix bias. Audit the dataset first.")
 
-    sens_col = sensitive_cols[0] 
-    logger.info(f"Using {sens_col} as the primary sensitive feature for mitigation.")
+    logger.info(f"Protected features (for constraints): {protected_cols}")
+    logger.info(f"Proxy features (to be dropped): {proxy_cols}")
 
     # Data Preparation
-    X = df.drop(columns=[target])
+    # Drop BOTH protected and proxy columns from features
+    X = df.drop(columns=[target] + protected_cols + proxy_cols)
     y = df[target]
-
+    
     # Basic Encoding
     X_encoded = pd.get_dummies(X, drop_first=True)
     y_binary, pos_label = _to_binary_outcome(y)
     y_binary = y_binary.astype(int)
 
-    # Scaling BEFORE mitigation to avoid Pipeline/Fairlearn compatibility issues
+    # Scaling
     scaler = StandardScaler()
     X_scaled = pd.DataFrame(
         scaler.fit_transform(X_encoded), 
@@ -224,32 +229,72 @@ async def fix_bias(model_name: str):
     )
 
     # Split data
-    X_train, X_test, y_train, y_test, A_train, A_test = train_test_split(
-        X_scaled, y_binary, df[sens_col], test_size=0.2, random_state=42
-    )
+    if protected_cols:
+        # For mitigation, Fairlearn often works best with a single sensitive feature.
+        # We combine multiple protected columns into a composite group feature.
+        if len(protected_cols) > 1:
+            A_combined = df[protected_cols].astype(str).agg("-".join, axis=1)
+        else:
+            A_combined = df[protected_cols[0]]
+            
+        # Convert to object to avoid StringArray issues
+        A_combined = A_combined.astype(object)
+        
+        # We also keep the individual ones in A_full for reporting if needed
+        A_full = df[protected_cols].astype(object)
 
-    # 1. Before Bias Mitigation
+        X_train, X_test, y_train, y_test, A_train_comb, A_test_comb = train_test_split(
+            X_scaled, y_binary, A_combined, test_size=0.2, random_state=42
+        )
+        
+        # Split A_full as well to keep A_test available for reporting
+        _, _, _, _, A_train_full, A_test_full = train_test_split(
+            X_scaled, y_binary, A_full, test_size=0.2, random_state=42
+        )
+        
+        primary_sens = protected_cols[0]
+    else:
+        # If only proxies found, we just do a blind model training
+        X_train, X_test, y_train, y_test = train_test_split(
+            X_scaled, y_binary, test_size=0.2, random_state=42
+        )
+        A_train_comb, A_test_comb = None, None
+        A_train_full, A_test_full = None, None
+
+    # 1. Before Bias Mitigation (Blind model)
     base_model = MODEL_MAP[model_name]()
     base_model.fit(X_train, y_train)
     y_pred_before = base_model.predict(X_test)
     acc_before = accuracy_score(y_test, y_pred_before)
-    dpd_before = demographic_parity_difference(y_test, y_pred_before, sensitive_features=A_test)
+    
+    dpd_before = 0.0
+    if A_test_full is not None:
+        dpd_before = demographic_parity_difference(y_test, y_pred_before, sensitive_features=A_test_full[primary_sens])
 
     # 2. After Bias Mitigation
-    logger.info("Running ExponentiatedGradient reduction...")
-    mitigated_model = ExponentiatedGradient(
-        MODEL_MAP[model_name](),
-        constraints=DemographicParity()
-    )
-    mitigated_model.fit(X_train, y_train, sensitive_features=A_train)
-    y_pred_after = mitigated_model.predict(X_test)
-    acc_after = accuracy_score(y_test, y_pred_after)
-    dpd_after = demographic_parity_difference(y_test, y_pred_after, sensitive_features=A_test)
+    if A_train_comb is not None:
+        logger.info("Running ExponentiatedGradient reduction on blind features...")
+        mitigated_model = ExponentiatedGradient(
+            MODEL_MAP[model_name](),
+            constraints=DemographicParity(),
+            eps=0.01
+        )
+        mitigated_model.fit(X_train, y_train, sensitive_features=A_train_comb)
+        y_pred_after = mitigated_model.predict(X_test)
+        acc_after = accuracy_score(y_test, y_pred_after)
+        dpd_after = demographic_parity_difference(y_test, y_pred_after, sensitive_features=A_test_full[primary_sens])
+        full_predictions = mitigated_model.predict(X_scaled)
+    else:
+        # Just use the blind model if no explicit protected attributes were found
+        logger.info("No protected attributes found, returning blind model results.")
+        mitigated_model = base_model
+        y_pred_after = y_pred_before
+        acc_after = acc_before
+        dpd_after = dpd_before
+        full_predictions = base_model.predict(X_scaled)
 
     # Generate "Fixed" Dataset
-    full_predictions = mitigated_model.predict(X_scaled)
     fixed_df = original_df.copy()
-    
     unique_originals = original_df[target].dropna().unique()
     if len(unique_originals) == 2:
         mapping = {1: pos_label}
@@ -260,27 +305,27 @@ async def fix_bias(model_name: str):
         fixed_df[target] = pd.Series(full_predictions, index=fixed_df.index).map(mapping)
     else:
         fixed_df[target] = full_predictions
-        fixed_df[f"{target}_is_positive"] = (full_predictions == 1)
 
     fixed_df.to_csv(FIXED_DATASET_PATH, index=False)
     logger.info("Bias mitigation complete. Fixed dataset saved.")
 
     return {
         "model_used": model_name,
-        "sensitive_feature": sens_col,
+        "protected_attributes_removed": protected_cols,
+        "proxy_attributes_removed": proxy_cols,
         "target_column": target,
         "positive_label": str(pos_label),
-        "before": {
+        "before_mitigation": {
             "accuracy": round(float(acc_before), 4),
-            "demographic_parity_difference": round(float(dpd_before), 4)
+            "dpd_primary": round(float(dpd_before), 4) if A_test_full is not None else "N/A"
         },
-        "after": {
+        "after_mitigation": {
             "accuracy": round(float(acc_after), 4),
-            "demographic_parity_difference": round(float(dpd_after), 4)
+            "dpd_primary": round(float(dpd_after), 4) if A_test_full is not None else "N/A"
         },
         "improvement": {
             "accuracy_change": round(float(acc_after - acc_before), 4),
-            "bias_reduction": round(float(dpd_before - dpd_after), 4)
+            "bias_reduction": round(float(dpd_before - dpd_after), 4) if A_test_full is not None else 0.0
         },
         "download_available": True
     }
