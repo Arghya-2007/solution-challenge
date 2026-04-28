@@ -111,22 +111,14 @@ Return ONLY JSON:
 """
     client = _get_client()
     response = client.models.generate_content(
-        model="gemini-2.5-flash-lite",
+        model="gemini-2.5-flash",
         contents=prompt,
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
             temperature=0.0
         )
     )
-
-    text = response.text
-    # Robust JSON extraction
-    start_idx = text.find('{')
-    end_idx = text.rfind('}')
-    if start_idx != -1 and end_idx != -1:
-        text = text[start_idx:end_idx+1]
-
-    return json.loads(text)
+    return json.loads(response.text)
 
 def get_recommendations(audit_results: dict, fairness_metrics: dict) -> dict:
     prompt = f"""
@@ -161,19 +153,11 @@ Return ONLY JSON:
 """
     client = _get_client()
     response = client.models.generate_content(
-        model="gemini-2.5-flash-lite",
+        model="gemini-2.5-flash",
         contents=prompt,
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
             temperature=0.2
         )
     )
-
-    text = response.text
-    # Robust JSON extraction
-    start_idx = text.find('{')
-    end_idx = text.rfind('}')
-    if start_idx != -1 and end_idx != -1:
-        text = text[start_idx:end_idx+1]
-
-    return json.loads(text)
+    return json.loads(response.text)
