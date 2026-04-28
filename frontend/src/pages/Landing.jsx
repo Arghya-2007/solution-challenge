@@ -502,9 +502,6 @@ export default function Landing() {
                 }} />
             ))}
 
-            // ─── Drop this entire block in place of the old AnimatePresence upload overlay ──
-            // Requires: framer-motion, @mui/material, G / G_COLORS / AnimatedCheck already in scope
-
             <AnimatePresence>
                 {isUploading && (
                     <motion.div
