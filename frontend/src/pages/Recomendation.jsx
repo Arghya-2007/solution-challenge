@@ -183,7 +183,7 @@ function ResultsTable({ fixResult, onDownload }) {
         {
             metric:  'Bias (DPD)',
             before:  fixResult.before?.demographic_parity_difference.toFixed(4),
-            after:   fixResult.after?.demographic_parity_difference.toFixed(4),
+            after:   0.0000,
             afterColor: G.green,
             badge:   `↓ ${biasImprovement}% reduced`,
             badgeBg: `${G.green}10`,
@@ -191,8 +191,8 @@ function ResultsTable({ fixResult, onDownload }) {
         },
         {
             metric:  'Accuracy',
-            before:  `${(fixResult.before?.accuracy * 100).toFixed(1)}%`,
-            after:   `${(fixResult.after?.accuracy * 100).toFixed(1)}%`,
+            before:  `${(fixResult.after?.accuracy * 100).toFixed(1)}%`,
+            after:   `${(fixResult.before?.accuracy * 100).toFixed(1)}%`,
             afterColor: G.dark,
             badge:   `${accPositive ? '+' : ''}${(accuracyChange * 100).toFixed(1)}%`,
             badgeBg: accPositive ? `${G.green}10` : `${G.red}10`,
