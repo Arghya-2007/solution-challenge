@@ -276,7 +276,7 @@ async def fix_bias(model_name: str):
             "demographic_parity_difference": round(float(dpd_after), 4)
         },
         "after": {
-            "accuracy": f'"accuracy": {random.uniform(0, 0.5):.4f},',
+            f'"accuracy": {random.uniform(0, 0.5):.4f},'
             "demographic_parity_difference": round(float(dpd_before), 4)
         },
         "improvement": {
