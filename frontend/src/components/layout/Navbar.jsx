@@ -45,7 +45,7 @@ export default function Navbar() {
   const navItems = [
     { label: 'Upload', path: '/', icon: <CloudUploadIcon /> },
     { label: 'Results', path: '/analyze', icon: <AssessmentIcon /> },
-    { label: 'History', path: '/history', icon: <HistoryIcon /> }
+    { label: 'History', path: '/', icon: <HistoryIcon /> }
   ];
 
   return (

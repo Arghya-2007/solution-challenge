@@ -9,6 +9,7 @@ import googleTheme from './theme/googleTheme';
 import Navbar from './components/layout/Navbar';
 import Lenis from 'lenis';
 import { useEffect, useMemo, memo } from 'react';
+import Footer from "./components/layout/Footer.jsx";
 
 const LandingPage = lazy(() => import('./pages/Landing'));
 const DashboardPage = lazy(() => import('./pages/Analyze'));
@@ -60,6 +61,7 @@ const App = memo(function App() {
               <Route path="/history" element={<HistoryPage />} />
             </Routes>
           </Suspense>
+          <Footer />
         </BrowserRouter>
       </SkeletonTheme>
     </ThemeProvider>

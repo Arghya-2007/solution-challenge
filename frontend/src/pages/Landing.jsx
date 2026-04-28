@@ -872,19 +872,43 @@ export default function Landing() {
                                         )}
 
                                         {file && (
-                                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} style={{ marginTop: 22 }}>
-                                                <Button size="large" onClick={e => { e.stopPropagation(); setFile(null); }}
-                                                        sx={{
-                                                            fontFamily: "'Syne',sans-serif", fontWeight: 900,
-                                                            borderRadius: '50px', textTransform: 'none',
-                                                            background: `linear-gradient(135deg,${G.red},#c5221f)`,
-                                                            color: '#fff', px: 4, py: 1.4,
-                                                            boxShadow: `0 8px 22px ${G.red}38`,
-                                                            '&:hover': { background: `linear-gradient(135deg,#c5221f,#a50e0e)`, boxShadow: `0 12px 32px ${G.red}55` },
-                                                        }}>
-                                                    ✕ Remove File
-                                                </Button>
-                                            </motion.div>
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 4, width: '100%', maxWidth: '320px', position: 'relative', zIndex: 10 }}>
+                                                <MagneticBtn>
+                                                    <Button variant="contained" fullWidth size="large"
+                                                            onClick={e => { e.stopPropagation(); handleUploadClick(); }}
+                                                            disabled={!file || isUploading}
+                                                            data-hover="true"
+                                                            sx={{
+                                                                py: 1.6, borderRadius: '50px',
+                                                                fontFamily: "'Syne',sans-serif", fontWeight: 900,
+                                                                fontSize: '1.1rem', textTransform: 'none',
+                                                                background: `linear-gradient(90deg,${G.blue},${G.red},${G.yellow},${G.green},${G.blue})`,
+                                                                backgroundSize: '300% 100%',
+                                                                animation: IS_PERF_MODE ? 'none' : 'gradientFlow 4s ease infinite',
+                                                                color: 'white', cursor: 'none',
+                                                                boxShadow: `0 12px 36px ${G.blue}36, 0 2px 8px ${G.blue}1a`,
+                                                                '&:not(:disabled):hover': {
+                                                                    boxShadow: `0 18px 48px ${G.blue}48, 0 0 0 2px rgba(255,255,255,0.18)`,
+                                                                },
+                                                                '&:disabled': { background: '#e0e0e0', color: '#9e9e9e', boxShadow: 'none' },
+                                                            }}>
+                                                        ✦ Start Audit
+                                                    </Button>
+                                                </MagneticBtn>
+                                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} style={{ width: '100%' }}>
+                                                    <Button fullWidth size="large" onClick={e => { e.stopPropagation(); setFile(null); }}
+                                                            sx={{
+                                                                fontFamily: "'Syne',sans-serif", fontWeight: 900,
+                                                                borderRadius: '50px', textTransform: 'none',
+                                                                background: `linear-gradient(135deg,${G.red},#c5221f)`,
+                                                                color: '#fff', py: 1.4,
+                                                                boxShadow: `0 8px 22px ${G.red}38`,
+                                                                '&:hover': { background: `linear-gradient(135deg,#c5221f,#a50e0e)`, boxShadow: `0 12px 32px ${G.red}55` },
+                                                            }}>
+                                                        ✕ Remove File
+                                                    </Button>
+                                                </motion.div>
+                                            </Box>
                                         )}
                                     </Card>
                                 </SpotlightCard>
@@ -1002,7 +1026,7 @@ export default function Landing() {
                                         <MagneticBtn>
                                             <Button variant="contained" fullWidth size="large"
                                                     onClick={handleUploadClick}
-                                                    disabled={(!file && !sheetUrl) || isUploading}
+                                                    disabled={!sheetUrl || isUploading}
                                                     data-hover="true"
                                                     sx={{
                                                         py: 2.2, borderRadius: '50px',
