@@ -8,7 +8,7 @@ import WorkIcon from '@mui/icons-material/Work';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import SchoolIcon from '@mui/icons-material/School';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, animate } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { uploadFile, uploadGoogleSheet } from '../api/equilens';
 import Skeleton from 'react-loading-skeleton';
@@ -396,7 +396,10 @@ export default function Landing() {
             try {
                 const res = file ? await uploadFile(file) : await uploadGoogleSheet(sheetUrl);
                 setUploadComplete(true);
-                setTimeout(() => navigate('/analyze', { state: { data: res, template: selectedTemplate } }), 1200);
+                setTimeout(() => {
+                    setIsUploading(false);
+                    setTimeout(() => navigate('/analyze', { state: { data: res, template: selectedTemplate } }), 400);
+                }, 1200);
             } catch (err) {
                 setIsUploading(false);
                 setError(err.message || 'Error uploading dataset.');
@@ -412,12 +415,12 @@ export default function Landing() {
     const handleUploadClick = useCallback(() => {
         if (!file && !sheetUrl) return setError('Please provide a CSV file or Google Sheet URL.');
         setIsUploading(true); setUploadProgress(0); setUploadComplete(false);
-        let step = 0;
-        const iv = setInterval(() => {
-            step++;
-            setUploadProgress(step);
-            if (step >= 100) { clearInterval(iv); runUploadRef.current(); }
-        }, 30);
+        animate(0, 100, {
+            duration: 3,
+            ease: 'linear',
+            onUpdate: (val) => setUploadProgress(val),
+            onComplete: () => runUploadRef.current()
+        });
     }, [file, sheetUrl]);
 
     return (
@@ -499,74 +502,257 @@ export default function Landing() {
                 }} />
             ))}
 
-            {/* ── Upload Overlay ───────────────────────────────────────────── */}
+            // ─── Drop this entire block in place of the old AnimatePresence upload overlay ──
+            // Requires: framer-motion, @mui/material, G / G_COLORS / AnimatedCheck already in scope
+
             <AnimatePresence>
                 {isUploading && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.28 }}
+                        style={{
+                            position: 'fixed', inset: 0, zIndex: 9999,
+                            background: 'rgba(242,246,255,0.97)',
+                            display: 'flex', flexDirection: 'column',
+                            alignItems: 'center', justifyContent: 'center',
+                            gap: 0,
+                        }}>
+
+                        {/* ── Central ring system ───────────────────────────────────────── */}
+                        <Box sx={{ position: 'relative', width: 220, height: 220, mb: 4, flexShrink: 0 }}>
+
+                            {/* Layer 1 — soft ambient glow (CSS, no JS) */}
+                            <Box sx={{
+                                position: 'absolute',
+                                inset: -28,
+                                borderRadius: '50%',
+                                background: uploadComplete
+                                    ? `radial-gradient(circle, ${G.green}18 0%, transparent 70%)`
+                                    : `radial-gradient(circle, ${G.blue}12 0%, transparent 70%)`,
+                                transition: 'background 0.6s ease',
+                                animation: 'ambientPulse 2.8s ease-in-out infinite',
+                            }} />
+
+                            {/* Layer 2 — single shared orbit: 4 dots equally spaced, rotate together */}
+                            <motion.div
+                                animate={uploadComplete ? { rotate: 0, scale: 0, opacity: 0 } : { rotate: 360 }}
+                                transition={uploadComplete
+                                    ? { duration: 0.4, ease: 'easeIn' }
+                                    : { duration: 3.2, repeat: Infinity, ease: 'linear' }}
                                 style={{
-                                    position: 'fixed', inset: 0, zIndex: 9999,
-                                    background: 'rgba(240,244,255,0.95)', backdropFilter: 'blur(18px)',
-                                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                    position: 'absolute', inset: -18,
+                                    width: 'calc(100% + 36px)', height: 'calc(100% + 36px)',
                                 }}>
-                        {[0, 0.65, 1.3].map((d, i) => (
-                            <motion.div key={i}
-                                        animate={{ scale: [0.9, 3], opacity: [0.4, 0] }}
-                                        transition={{ duration: 2.5, repeat: Infinity, delay: d, ease: 'easeOut' }}
-                                        style={{ position: 'absolute', width: 160, height: 160, borderRadius: '50%', border: `2px solid ${G_COLORS[i]}` }} />
-                        ))}
-                        {G_COLORS.map((color, i) => (
-                            <motion.div key={i}
-                                        animate={{ rotate: 360 }}
-                                        transition={{ duration: 2.4, repeat: Infinity, ease: 'linear', delay: i * 0.6 }}
-                                        style={{ position: 'absolute', width: 200, height: 200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
-                                <Box sx={{ width: 12, height: 12, borderRadius: '50%', background: color, boxShadow: `0 0 12px ${color}`, mt: '-6px' }} />
+                                {G_COLORS.map((color, i) => {
+                                    const angle = (i / 4) * 360; // 0°, 90°, 180°, 270° — perfectly even
+                                    const rad   = (angle * Math.PI) / 180;
+                                    const r     = 50; // % radius of the orbit container
+                                    const cx    = 50 + r * Math.sin(rad);
+                                    const cy    = 50 - r * Math.cos(rad);
+                                    return (
+                                        <Box key={i} sx={{
+                                            position: 'absolute',
+                                            left:   `${cx}%`, top: `${cy}%`,
+                                            transform: 'translate(-50%,-50%)',
+                                            width: 11, height: 11, borderRadius: '50%',
+                                            background: color,
+                                            boxShadow: `0 0 10px ${color}cc, 0 0 20px ${color}55`,
+                                        }} />
+                                    );
+                                })}
                             </motion.div>
-                        ))}
-                        <Box sx={{ position: 'relative', mb: 4 }}>
-                            <svg width={200} height={200} viewBox="0 0 100 100">
-                                <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth="6" />
-                                <motion.circle cx="50" cy="50" r="42" fill="none"
-                                               stroke={uploadComplete ? G.green : 'url(#uGrad)'}
-                                               strokeWidth="6" strokeLinecap="round" strokeDasharray="264"
-                                               initial={{ strokeDashoffset: 264 }}
-                                               animate={{ strokeDashoffset: 264 - (264 * uploadProgress) / 100 }}
-                                               transition={{ ease: 'linear', duration: 0.03 }}
-                                               style={{ transformOrigin: 'center', transform: 'rotate(-90deg)' }}
-                                />
-                                <defs>
-                                    <linearGradient id="uGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%"   stopColor={G.blue}   />
-                                        <stop offset="33%"  stopColor={G.red}    />
-                                        <stop offset="66%"  stopColor={G.yellow} />
-                                        <stop offset="100%" stopColor={G.green}  />
-                                    </linearGradient>
-                                </defs>
-                            </svg>
-                            <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                {uploadComplete
-                                    ? <AnimatedCheck size={60} color={G.green} />
-                                    : <Typography sx={{
-                                        fontFamily: "'Syne',sans-serif", fontWeight: 900, fontSize: '2.2rem',
-                                        background: `linear-gradient(135deg,${G.blue},${G.red})`,
-                                        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                                    }}>
-                                        {Math.round(uploadProgress)}<span style={{ fontSize: '1rem' }}>%</span>
-                                    </Typography>
-                                }
+
+                            {/* Layer 3 — dashed guide ring (static, gives the orbit a track) */}
+                            <Box sx={{
+                                position: 'absolute', inset: -18,
+                                width: 'calc(100% + 36px)', height: 'calc(100% + 36px)',
+                                borderRadius: '50%',
+                                border: '1px dashed rgba(66,133,244,0.12)',
+                                pointerEvents: 'none',
+                            }} />
+
+                            {/* Layer 4 — progress SVG ring */}
+                            <Box sx={{ position: 'absolute', inset: 0 }}>
+                                <svg width="100%" height="100%" viewBox="0 0 100 100">
+                                    {/* Track */}
+                                    <circle
+                                        cx="50" cy="50" r="44"
+                                        fill="none"
+                                        stroke="rgba(0,0,0,0.06)"
+                                        strokeWidth="5"
+                                    />
+                                    {/* Progress arc */}
+                                    <motion.circle
+                                        cx="50" cy="50" r="44"
+                                        fill="none"
+                                        stroke={uploadComplete ? G.green : 'url(#uGradNew)'}
+                                        strokeWidth="5"
+                                        strokeLinecap="round"
+                                        strokeDasharray="276.5"
+                                        initial={{ strokeDashoffset: 276.5 }}
+                                        animate={{ strokeDashoffset: 276.5 - (276.5 * uploadProgress) / 100 }}
+                                        transition={{ duration: 0, ease: 'linear' }}
+                                        style={{ transformOrigin: 'center', transform: 'rotate(-90deg)' }}
+                                    />
+                                    {/* Glowing leading dot — moves with progress arc tip */}
+                                    {!uploadComplete && uploadProgress > 2 && (
+                                        <motion.circle
+                                            r="3.5"
+                                            fill={G.blue}
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: [0.6, 1, 0.6] }}
+                                            transition={{ duration: 1.2, repeat: Infinity }}
+                                            style={{
+                                                filter: `drop-shadow(0 0 4px ${G.blue})`,
+                                                // Position the dot at the arc tip
+                                                cx: 50 + 44 * Math.cos(((-90 + (uploadProgress / 100) * 360 - 0.5) * Math.PI) / 180),
+                                                cy: 50 + 44 * Math.sin(((-90 + (uploadProgress / 100) * 360 - 0.5) * Math.PI) / 180),
+                                            }}
+                                        />
+                                    )}
+                                    <defs>
+                                        <linearGradient id="uGradNew" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%"   stopColor={G.blue}   />
+                                            <stop offset="33%"  stopColor={G.red}    />
+                                            <stop offset="66%"  stopColor={G.yellow} />
+                                            <stop offset="100%" stopColor={G.green}  />
+                                        </linearGradient>
+                                    </defs>
+                                </svg>
+                            </Box>
+
+                            {/* Layer 5 — center content: % counter or check */}
+                            <Box sx={{
+                                position: 'absolute', inset: 0,
+                                display: 'flex', flexDirection: 'column',
+                                alignItems: 'center', justifyContent: 'center',
+                                gap: 0.2,
+                            }}>
+                                <AnimatePresence mode="wait">
+                                    {uploadComplete ? (
+                                        <motion.div
+                                            key="check"
+                                            initial={{ scale: 0, rotate: -30 }}
+                                            animate={{ scale: 1, rotate: 0 }}
+                                            transition={{ type: 'spring', bounce: 0.55, duration: 0.55 }}>
+                                            <AnimatedCheck size={58} color={G.green} />
+                                        </motion.div>
+                                    ) : (
+                                        <motion.div
+                                            key="pct"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0, scale: 0.8 }}
+                                            style={{ textAlign: 'center' }}>
+                                            <Typography sx={{
+                                                fontFamily: "'Syne',sans-serif", fontWeight: 900,
+                                                fontSize: '2.4rem', lineHeight: 1,
+                                                background: `linear-gradient(135deg, ${G.blue}, ${G.red})`,
+                                                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                                            }}>
+                                                {Math.round(uploadProgress)}
+                                            </Typography>
+                                            <Typography sx={{
+                                                fontFamily: "'Plus Jakarta Sans',sans-serif",
+                                                fontWeight: 700, fontSize: '0.72rem',
+                                                color: 'rgba(0,0,0,0.30)', letterSpacing: '0.08em',
+                                                textTransform: 'uppercase', mt: 0.2,
+                                            }}>
+                                                percent
+                                            </Typography>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </Box>
                         </Box>
-                        <Typography sx={{
-                            fontFamily: "'Syne',sans-serif", fontWeight: 900, fontSize: { xs: '1.5rem', md: '2rem' },
-                            background: uploadComplete
-                                ? `linear-gradient(135deg,${G.green},#1E8E3E)`
-                                : `linear-gradient(90deg,${G.blue},${G.red},${G.yellow},${G.green},${G.blue})`,
-                            backgroundSize: '300%',
-                            animation: uploadComplete ? 'none' : 'gradientFlow 3s ease infinite',
-                            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                            letterSpacing: '-0.02em', textAlign: 'center',
-                        }}>
-                            {uploadComplete ? '✦ Audit Engine Initialized!' : 'Securely Processing Dataset…'}
-                        </Typography>
+
+                        {/* ── Progress bar — thin, underneath the ring ─────────────────── */}
+                        <Box sx={{ width: 220, height: 3, borderRadius: 2, background: 'rgba(0,0,0,0.07)', mb: 4, overflow: 'hidden' }}>
+                            <motion.div
+                                animate={{ width: `${uploadProgress}%` }}
+                                transition={{ duration: 0, ease: 'linear' }}
+                                style={{
+                                    height: '100%', borderRadius: 2,
+                                    background: uploadComplete
+                                        ? G.green
+                                        : `linear-gradient(90deg, ${G.blue}, ${G.red}, ${G.yellow}, ${G.green})`,
+                                    backgroundSize: '300% 100%',
+                                    animation: 'gradientFlow 2.5s linear infinite',
+                                }}
+                            />
+                        </Box>
+
+                        {/* ── Status label ─────────────────────────────────────────────── */}
+                        <AnimatePresence mode="wait">
+                            {uploadComplete ? (
+                                <motion.div
+                                    key="done"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                                    style={{ textAlign: 'center' }}>
+                                    <Typography sx={{
+                                        fontFamily: "'Syne',sans-serif", fontWeight: 900,
+                                        fontSize: { xs: '1.5rem', md: '1.9rem' },
+                                        letterSpacing: '-0.02em',
+                                        background: `linear-gradient(135deg, ${G.green}, #1E8E3E)`,
+                                        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                                    }}>
+                                        ✦ Audit Engine Initialized!
+                                    </Typography>
+                                    <Typography sx={{
+                                        fontFamily: "'Plus Jakarta Sans',sans-serif",
+                                        fontWeight: 600, fontSize: '0.9rem',
+                                        color: 'rgba(0,0,0,0.36)', mt: 0.8,
+                                    }}>
+                                        Redirecting to analysis…
+                                    </Typography>
+                                </motion.div>
+                            ) : (
+                                <motion.div
+                                    key="processing"
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.32 }}
+                                    style={{ textAlign: 'center' }}>
+                                    <Typography sx={{
+                                        fontFamily: "'Syne',sans-serif", fontWeight: 900,
+                                        fontSize: { xs: '1.4rem', md: '1.8rem' },
+                                        letterSpacing: '-0.02em',
+                                        background: `linear-gradient(90deg,${G.blue},${G.red},${G.yellow},${G.green},${G.blue})`,
+                                        backgroundSize: '300%',
+                                        animation: 'gradientFlow 3s ease infinite',
+                                        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                                    }}>
+                                        Securely Processing Dataset
+                                    </Typography>
+                                    {/* Animated dot ellipsis */}
+                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.6, mt: 1 }}>
+                                        {[0, 0.18, 0.36].map((d, i) => (
+                                            <Box key={i} sx={{
+                                                width: 5, height: 5, borderRadius: '50%',
+                                                background: G_COLORS[i],
+                                                animation: `dotBounce 1.1s ease-in-out ${d}s infinite`,
+                                            }} />
+                                        ))}
+                                    </Box>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* ── Keyframes ────────────────────────────────────────────────── */}
+                        <GlobalStyles styles={{
+                            '@keyframes ambientPulse': {
+                                '0%,100%': { opacity: '0.6', transform: 'scale(1)'     },
+                                '50%':     { opacity: '1',   transform: 'scale(1.08)'  },
+                            },
+                            '@keyframes dotBounce': {
+                                '0%,100%': { transform: 'translateY(0)',   opacity: '0.5' },
+                                '50%':     { transform: 'translateY(-6px)', opacity: '1'  },
+                            },
+                        }} />
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -656,7 +842,7 @@ export default function Landing() {
                                                  lineHeight: 1.05, display: 'inline-block',
                                                  letterSpacing: '-0.03em',
                                                  textShadow: `0 6px 24px ${w.color}38`,
-                                                 willChange: 'transform', position: 'relative', cursor: 'none',
+                                                 willChange: 'transform', position: 'relative', cursor: SHOW_CURSOR ? 'none' : 'auto',
                                              }}>
                                     {w.text}
                                     {/* NEW: underline shimmer — scaleX + opacity on hover, transform only */}
@@ -712,7 +898,7 @@ export default function Landing() {
                                     <motion.div key={i}
                                                 whileHover={{ y: -6, scale: 1.06 }}
                                                 transition={{ type: 'spring', stiffness: 360, damping: 22 }}
-                                                style={{ cursor: 'none', flexShrink: 0 }}>
+                                                style={{ cursor: SHOW_CURSOR ? 'none' : 'auto', flexShrink: 0 }}>
                                         {/* NEW: multi-layer glow on hover */}
                                         <Box sx={{
                                             px: { xs: 2, md: 3 }, py: 1.4, borderRadius: '16px',
@@ -755,7 +941,7 @@ export default function Landing() {
                                     overflow: 'hidden', zIndex: 0,
                                     '&::before': {
                                         content: '""', position: 'absolute', top: '-50%', left: '-50%', width: '200%', height: '200%',
-                                        background: `conic-gradient(from 0deg, ${G.blue}80, ${G.red}80, ${G.yellow}80, ${G.green}80, ${G.blue}80)`,
+                                        background: `conic-gradient(from 0deg, ${G.blue}80, ${G.red}80, ${G.yellow}80, ${G.green}80)`,
                                         animation: 'spinRing 5s linear infinite',
                                         filter: 'blur(4px)',
                                         zIndex: -1,
@@ -772,7 +958,7 @@ export default function Landing() {
                                             p: { xs: 3, md: 6 }, minHeight: 420,
                                             display: 'flex', flexDirection: 'column',
                                             alignItems: 'center', justifyContent: 'center',
-                                            borderRadius: '28px', cursor: 'none',
+                                            borderRadius: '28px', cursor: SHOW_CURSOR ? 'none' : 'pointer',
                                             position: 'relative', overflow: 'hidden', height: '100%', zIndex: 0,
                                             background: isDragging ? 'rgba(255,255,255,0.97)' : 'rgba(255,255,255,0.90)',
                                             backdropFilter: IS_PERF_MODE ? 'none' : 'blur(10px)',
@@ -885,7 +1071,7 @@ export default function Landing() {
                                                                 background: `linear-gradient(90deg,${G.blue},${G.red},${G.yellow},${G.green},${G.blue})`,
                                                                 backgroundSize: '300% 100%',
                                                                 animation: IS_PERF_MODE ? 'none' : 'gradientFlow 4s ease infinite',
-                                                                color: 'white', cursor: 'none',
+                                                                color: 'white', cursor: SHOW_CURSOR ? 'none' : 'pointer',
                                                                 boxShadow: `0 12px 36px ${G.blue}36, 0 2px 8px ${G.blue}1a`,
                                                                 '&:not(:disabled):hover': {
                                                                     boxShadow: `0 18px 48px ${G.blue}48, 0 0 0 2px rgba(255,255,255,0.18)`,
@@ -1035,7 +1221,7 @@ export default function Landing() {
                                                         background: `linear-gradient(90deg,${G.blue},${G.red},${G.yellow},${G.green},${G.blue})`,
                                                         backgroundSize: '300% 100%',
                                                         animation: IS_PERF_MODE ? 'none' : 'gradientFlow 4s ease infinite',
-                                                        color: 'white', cursor: 'none',
+                                                        color: 'white', cursor: SHOW_CURSOR ? 'none' : 'auto',
                                                         boxShadow: `0 12px 36px ${G.blue}36, 0 2px 8px ${G.blue}1a`,
                                                         position: 'relative', overflow: 'hidden',
                                                         // NEW: CSS shimmer sweep on hover — zero JS
@@ -1149,7 +1335,7 @@ export default function Landing() {
                                                   onClick={() => setTemplate(tpl.id)}
                                                   data-hover="true"
                                                   sx={{
-                                                      p: { xs: 4, md: 5 }, cursor: 'none', minHeight: 280,
+                                                      p: { xs: 4, md: 5 }, cursor: SHOW_CURSOR ? 'none' : 'auto', minHeight: 280,
                                                       display: 'flex', flexDirection: 'column',
                                                       alignItems: 'center', textAlign: 'center',
                                                       borderRadius: '28px', position: 'relative', overflow: 'hidden',

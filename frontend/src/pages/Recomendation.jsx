@@ -301,11 +301,11 @@ function ResultsTable({ fixResult, onDownload }) {
 // ─── Rec card skeleton ─────────────────────────────────────────────────────────
 function RecSkeleton() {
     return (
-        <Box sx={{ ...card({ p: 3.5, minHeight: 260 }) }}>
-            <Skeleton width="40%" height={22} style={{ marginBottom: 14 }} />
-            <Skeleton width="75%" height={28} style={{ marginBottom: 10 }} />
-            <Skeleton count={3} height={14} style={{ marginBottom: 6 }} />
-            <Skeleton width="60%" height={14} style={{ marginTop: 16 }} />
+        <Box sx={{ ...card({ p: { xs: 2.5, md: 3.5 }, minHeight: 260 }) }}>
+            <Skeleton width="40%" height={22} style={{ marginBottom: 14, borderRadius: 8 }} enableAnimation={true} />
+            <Skeleton width="75%" height={28} style={{ marginBottom: 10, borderRadius: 8 }} enableAnimation={true} />
+            <Skeleton count={3} height={14} style={{ marginBottom: 6, borderRadius: 6 }} enableAnimation={true} />
+            <Skeleton width="60%" height={14} style={{ marginTop: 16, borderRadius: 6 }} enableAnimation={true} />
         </Box>
     );
 }
@@ -609,14 +609,14 @@ export default function Recommendation() {
                                                     borderRadius: 2, animation: 'scanAcross 1.4s ease-in-out infinite',
                                                 }} />
                                             </Box>
-                                            <Box sx={{ ...card({ p: 3 }), background: G.light }}>
-                                                <Skeleton width={180} height={22} style={{ marginBottom: 20 }} />
+                                            <Box sx={{ ...card({ p: { xs: 2, md: 3 } }), background: G.light }}>
+                                                <Skeleton width={180} height={22} style={{ marginBottom: 20, borderRadius: 8 }} enableAnimation={true} />
                                                 {[1,2].map(i => (
-                                                    <Box key={i} sx={{ display: 'flex', gap: 3, mb: 2 }}>
-                                                        <Skeleton width="25%" height={36} />
-                                                        <Skeleton width="20%" height={36} />
-                                                        <Skeleton width="20%" height={36} />
-                                                        <Skeleton width="20%" height={36} />
+                                                    <Box key={i} sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: 1, sm: 3 }, mb: 2 }}>
+                                                        <Skeleton width={120} height={36} style={{ borderRadius: 8 }} enableAnimation={true} />
+                                                        <Skeleton width={100} height={36} style={{ borderRadius: 8 }} enableAnimation={true} />
+                                                        <Skeleton width={100} height={36} style={{ borderRadius: 8 }} enableAnimation={true} />
+                                                        <Skeleton width={100} height={36} style={{ borderRadius: 8 }} enableAnimation={true} />
                                                     </Box>
                                                 ))}
                                             </Box>

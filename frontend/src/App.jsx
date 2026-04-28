@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
@@ -16,6 +16,19 @@ const DashboardPage = lazy(() => import('./pages/Analyze'));
 const RecommendationPage = lazy(() => import('./pages/Recomendation'));
 const HistoryPage = lazy(() => import('./pages/History'));
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    if (window.lenis) {
+      window.lenis.scrollTo(0, { immediate: true });
+    }
+  }, [pathname]);
+
+  return null;
+}
+
 const App = memo(function App() {
   useEffect(() => {
     const lenis = new Lenis({
@@ -30,6 +43,8 @@ const App = memo(function App() {
       infinite: false,
     });
 
+    window.lenis = lenis;
+
     function raf(time) {
       lenis.raf(time);
       requestAnimationFrame(raf);
@@ -39,6 +54,7 @@ const App = memo(function App() {
 
     return () => {
       lenis.destroy();
+      delete window.lenis;
     };
   }, []);
 
@@ -51,8 +67,9 @@ const App = memo(function App() {
   // Main APP
   return (
     <ThemeProvider theme={googleTheme}>
-      <SkeletonTheme baseColor="#e0e0e0" highlightColor="#f5f5f5">
+      <SkeletonTheme baseColor="#e0e0e0" highlightColor="#f5f5f5" borderRadius="8px" duration={1.2}>
         <BrowserRouter>
+          <ScrollToTop />
           <Navbar />
           <Suspense fallback={fallbackUI}>
             <Routes>
