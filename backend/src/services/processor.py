@@ -7,6 +7,7 @@ from ..config import (
     API_KEY, TARGET_KEYWORDS, SENSITIVE_KEYWORDS,
     PROXY_RISK_KEYWORDS, CONTEXT_RULES
 )
+from tenacity import retry, wait_exponential, stop_after_attempt
 
 def _get_client():
     if not API_KEY:
@@ -71,6 +72,7 @@ def rule_check(col_name: str, profile: dict) -> dict:
         }
     return {"flag": False, "type": "none"}
 
+@retry(wait=wait_exponential(multiplier=2, min=4, max=15), stop=stop_after_attempt(3))
 def llm_audit(profiles: dict, rules: dict) -> dict:
     payload = {
         col: {
@@ -118,16 +120,9 @@ Return ONLY JSON:
             temperature=0.0
         )
     )
+    return json.loads(response.text)
 
-    text = response.text
-    # Robust JSON extraction
-    start_idx = text.find('{')
-    end_idx = text.rfind('}')
-    if start_idx != -1 and end_idx != -1:
-        text = text[start_idx:end_idx+1]
-
-    return json.loads(text)
-
+@retry(wait=wait_exponential(multiplier=2, min=4, max=15), stop=stop_after_attempt(3))
 def get_recommendations(audit_results: dict, fairness_metrics: dict) -> dict:
     prompt = f"""
 You are an expert AI Fairness Consultant.
@@ -168,12 +163,4 @@ Return ONLY JSON:
             temperature=0.2
         )
     )
-
-    text = response.text
-    # Robust JSON extraction
-    start_idx = text.find('{')
-    end_idx = text.rfind('}')
-    if start_idx != -1 and end_idx != -1:
-        text = text[start_idx:end_idx+1]
-
-    return json.loads(text)
+    return json.loads(response.text)

@@ -129,11 +129,14 @@ export default function Analyze() {
             const flagged = Object.keys(analysisRes.bias_audit?.flagged_features || {});
             setProtectedAttrs(flagged);
 
-            const [summaryRes, recsRes] = await Promise.all([
-                getSummary(analysisRes.fairness_metrics || {}, language),
-                getRecommendations(),
-            ]);
+            await new Promise(resolve => setTimeout(resolve, 2500));
+            
+            const summaryRes = await getSummary(analysisRes.fairness_metrics || {}, language);
             setSummary(summaryRes);
+
+            await new Promise(resolve => setTimeout(resolve, 2500));
+            
+            const recsRes = await getRecommendations();
             setRecommendations(recsRes);
         } catch (err) {
             console.error(err);
@@ -160,7 +163,7 @@ export default function Analyze() {
         getSummary(results.fairness_metrics || {}, language)
             .then(setSummary)
             .catch(() => toast('Language switch failed.', 'warning'));
-    }, [language, results]); // eslint-disable-line
+    }, [language]); // eslint-disable-line
 
     // ── Derived data ────────────────────────────────────────────────────────────
     const fairnessData   = results?.fairness_metrics || {};
@@ -741,3 +744,4 @@ export default function Analyze() {
         </Box>
     );
 }
+
