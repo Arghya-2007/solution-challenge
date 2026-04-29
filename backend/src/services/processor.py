@@ -7,6 +7,8 @@ from ..config import (
     API_KEY, TARGET_KEYWORDS, SENSITIVE_KEYWORDS,
     PROXY_RISK_KEYWORDS, CONTEXT_RULES
 )
+from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
+from google.api_core.exceptions import TooManyRequests, ServiceUnavailable
 
 def _get_client():
     if not API_KEY:
@@ -120,6 +122,10 @@ Return ONLY JSON:
     )
     return json.loads(response.text)
 
+@retry(
+    wait=wait_exponential(multiplier=2, min=4, max=15), 
+    stop=stop_after_attempt(3)
+)
 def get_recommendations(audit_results: dict, fairness_metrics: dict) -> dict:
     prompt = f"""
 You are an expert AI Fairness Consultant.
