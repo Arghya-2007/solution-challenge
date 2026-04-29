@@ -175,24 +175,24 @@ function RecCard({ rec, index }) {
 
 // ─── Results comparison table ───────────────────────────────────────────────────
 function ResultsTable({ fixResult, onDownload }) {
-    const biasImprovement = (Number(fixResult?.improvement?.bias_reduction || 0) * 100).toFixed(1);
-    const accuracyChange  = Number(fixResult?.improvement?.accuracy_change || 0);
+    const biasImprovement = (fixResult.improvement?.bias_reduction * 100).toFixed(1);
+    const accuracyChange  = fixResult.improvement?.accuracy_change;
     const accPositive     = accuracyChange >= 0;
 
     const rows = [
         {
             metric:  'Bias (DPD)',
-            before:  Number(fixResult?.before?.demographic_parity_difference || 0).toFixed(4),
-            after:   Number(fixResult?.after?.demographic_parity_difference || 0).toFixed(4),
+            before:  fixResult.before?.demographic_parity_difference.toFixed(4),
+            after:   fixResult.after?.demographic_parity_difference.toFixed(4),
             afterColor: G.green,
-            badge:   `↓ ${Math.abs(biasImprovement)}% reduced`,
+            badge:   `↓ ${biasImprovement}% reduced`,
             badgeBg: `${G.green}10`,
             badgeColor: G.green,
         },
         {
             metric:  'Accuracy',
-            before:  `${(Number(fixResult?.before?.accuracy || 0) * 100).toFixed(1)}%`,
-            after:   `${(Number(fixResult?.after?.accuracy || 0) * 100).toFixed(1)}%`,
+            before:  `${(fixResult.before?.accuracy * 100).toFixed(1)}%`,
+            after:   `${(fixResult.after?.accuracy * 100).toFixed(1)}%`,
             afterColor: G.dark,
             badge:   `${accPositive ? '+' : ''}${(accuracyChange * 100).toFixed(1)}%`,
             badgeBg: accPositive ? `${G.green}10` : `${G.red}10`,
