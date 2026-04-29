@@ -7,8 +7,7 @@ from ..config import (
     API_KEY, TARGET_KEYWORDS, SENSITIVE_KEYWORDS,
     PROXY_RISK_KEYWORDS, CONTEXT_RULES
 )
-from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
-from google.api_core.exceptions import TooManyRequests, ServiceUnavailable
+from tenacity import retry, wait_exponential, stop_after_attempt
 
 def _get_client():
     if not API_KEY:
@@ -73,6 +72,7 @@ def rule_check(col_name: str, profile: dict) -> dict:
         }
     return {"flag": False, "type": "none"}
 
+@retry(wait=wait_exponential(multiplier=2, min=4, max=15), stop=stop_after_attempt(3))
 def llm_audit(profiles: dict, rules: dict) -> dict:
     payload = {
         col: {
@@ -113,7 +113,7 @@ Return ONLY JSON:
 """
     client = _get_client()
     response = client.models.generate_content(
-        model="gemini-2.5-flash-lite",
+        model="gemini-2.5-flash-8b",
         contents=prompt,
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
@@ -122,10 +122,7 @@ Return ONLY JSON:
     )
     return json.loads(response.text)
 
-@retry(
-    wait=wait_exponential(multiplier=2, min=4, max=15), 
-    stop=stop_after_attempt(3)
-)
+@retry(wait=wait_exponential(multiplier=2, min=4, max=15), stop=stop_after_attempt(3))
 def get_recommendations(audit_results: dict, fairness_metrics: dict) -> dict:
     prompt = f"""
 You are an expert AI Fairness Consultant.
@@ -159,7 +156,7 @@ Return ONLY JSON:
 """
     client = _get_client()
     response = client.models.generate_content(
-        model="gemini-2.5-flash-lite",
+        model="gemini-2.5-flash-8b",
         contents=prompt,
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
