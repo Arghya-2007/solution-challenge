@@ -1,0 +1,27 @@
+steps:
+  # Deploy nest-backend
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud run deploy nest-backend \
+          --source ./nest-backend \
+          --region asia-south1 \
+          --project project-68c64ea9-e771-4bee-9f1 \
+          --quiet
+
+  # Deploy processing-server
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud run deploy processing-server \
+          --source ./processing-server \
+          --region asia-south1 \
+          --project project-68c64ea9-e771-4bee-9f1 \
+          --quiet
+
+options:
+  logging: CLOUD_LOGGING_ONLY

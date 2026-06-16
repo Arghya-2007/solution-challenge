@@ -1,0 +1,2 @@
+Bias score out of 100
+Top 5 to top 10 bias column name

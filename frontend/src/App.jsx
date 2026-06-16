@@ -1,0 +1,108 @@
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
+import CircularProgress from '@mui/material/CircularProgress';
+import Box from '@mui/material/Box';
+import 'react-loading-skeleton/dist/skeleton.css';
+import { SkeletonTheme } from 'react-loading-skeleton';
+import googleTheme from './theme/googleTheme';
+import Navbar from './components/layout/Navbar';
+import Lenis from 'lenis';
+import { useEffect, useMemo, memo } from 'react';
+import Footer from "./components/layout/Footer.jsx";
+import { checkHealth } from './api/equilens';
+import ProtectedRoute from './components/auth/ProtectedRoute.jsx';
+
+const LandingPage = lazy(() => import('./pages/Landing'));
+const DashboardPage = lazy(() => import('./pages/Analyze'));
+const RecommendationPage = lazy(() => import('./pages/Recomendation'));
+const MigrationDashboardPage = lazy(() => import('./pages/MigrationDashboard'));
+const HistoryPage = lazy(() => import('./pages/History'));
+const HistoryDetailsPage = lazy(() => import('./pages/HistoryDetails'));
+const ErrorPage = lazy(() => import('./pages/ErrorPage'));
+const ErrorTestPage = lazy(() => import('./pages/ErrorTest'));
+const AuthPage = lazy(() => import('./pages/AuthPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const EquilensPage = lazy(() => import('./pages/Equilens'));
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    if (window.lenis) {
+      window.lenis.scrollTo(0, { immediate: true });
+    }
+  }, [pathname]);
+
+  return null;
+}
+
+const App = memo(function App() {
+  useEffect(() => {
+    // Wake up the backend to reduce cold start latency
+    checkHealth().catch(err => console.debug('Health check failed:', err));
+
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // https://www.desmos.com/calculator/brs54l4xou
+      direction: 'vertical',
+      gestureDirection: 'vertical',
+      smooth: true,
+      mouseMultiplier: 1,
+      smoothTouch: false,
+      touchMultiplier: 2,
+      infinite: false,
+    });
+
+    window.lenis = lenis;
+
+    function raf(time) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+
+    requestAnimationFrame(raf);
+
+    return () => {
+      lenis.destroy();
+      delete window.lenis;
+    };
+  }, []);
+
+  const fallbackUI = useMemo(() => (
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 64px)' }}>
+      <CircularProgress />
+    </Box>
+  ), []);
+
+  // Main APP
+  return (
+    <ThemeProvider theme={googleTheme}>
+      <SkeletonTheme baseColor="#e0e0e0" highlightColor="#f5f5f5" borderRadius="8px" duration={1.2}>
+        <BrowserRouter>
+          <ScrollToTop />
+          <Navbar />
+          <Suspense fallback={fallbackUI}>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/analyze" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+              <Route path="/recommendation" element={<ProtectedRoute><RecommendationPage /></ProtectedRoute>} />
+              <Route path="/migration" element={<ProtectedRoute><MigrationDashboardPage /></ProtectedRoute>} />
+              <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
+              <Route path="/history/:id" element={<ProtectedRoute><HistoryDetailsPage /></ProtectedRoute>} />
+              <Route path="/test-errors" element={<ErrorTestPage />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+              <Route path="/demo-video.mp4" element={<EquilensPage />} />
+              <Route path="/demoVideo.mp4" element={<EquilensPage />} />
+              <Route path="*" element={<ErrorPage />} />
+            </Routes>
+          </Suspense>
+          <Footer />
+        </BrowserRouter>
+      </SkeletonTheme>
+    </ThemeProvider>
+  );
+});
+
+export default App;

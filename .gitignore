@@ -1,0 +1,20 @@
+# Global secrets and keys
+sa-key.json
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+
+# Global Environment Variables
+.env
+.env.*
+!.env.example
+env.yaml
+
+# IDEs and Editors
+.idea/
+.vscode/
+.DS_Store
+*.swp
+*.swo

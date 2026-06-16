@@ -1,0 +1,27 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.env.*
+!.env.example
+env.yaml
+.venv
+env/
+venv/
+
+# Secrets and Keys
+sa-key.json
+*.pem
+*.key
+
+# OS and IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Project Specific
+data/
+*.log

@@ -1,0 +1,14 @@
+pandas
+numpy
+scipy
+google-genai
+python-dotenv
+scikit-learn
+fastapi
+uvicorn
+gcsfs
+google-cloud-storage
+firebase-admin
+reportlab
+torch
+fairlearn
