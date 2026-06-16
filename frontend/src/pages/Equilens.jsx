@@ -661,6 +661,19 @@ function Hero() {
                         >
                             Download Video
                         </motion.a>
+                        <motion.a
+                            href="/hr_bias_dataset.csv"
+                            download="hr_bias_dataset.csv"
+                            className="no-underline font-semibold px-6 py-4 rounded-[14px] text-[15px] border"
+                            style={{
+                                color: "rgba(255,255,255,0.7)",
+                                background: "rgba(255,255,255,0.06)",
+                                borderColor: "rgba(255,255,255,0.14)",
+                            }}
+                            whileHover={{ background: "rgba(255,255,255,0.12)", color: "#fff" }}
+                        >
+                            Download BIAS Dataset for Testing
+                        </motion.a>
                     </motion.div>
                 </div>
 
