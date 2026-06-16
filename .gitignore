@@ -12,7 +12,7 @@ sa-key.json
 !.env.example
 env.yaml
 
-# IDEs and Editors
+# IDEs
 .idea/
 .vscode/
 .DS_Store
